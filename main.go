@@ -23,7 +23,7 @@ func main() {
 	router.GET("/download", func(c *gin.Context) {
 		id := c.Query("file")
 		if strings.Contains(id, "..") {
-			c.JSON(200, gin.H{"message": "Invalid filename. Please check and try again."})
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid filename. Please check and try again."})
 		} else {
 			savePath := filepath.Join(".", FOLDER)
 			_, notExistErr := os.Stat(savePath)
@@ -33,7 +33,7 @@ func main() {
 			localPath := filepath.Join(savePath, id)
 			fileInfo, fileExistErr := os.Stat(localPath)
 			if os.IsNotExist(fileExistErr) {
-				c.JSON(200, gin.H{"message": "file not found"})
+				c.JSON(http.StatusBadRequest, gin.H{"message": "file not found"})
 			} else {
 				// 对文件名进行 URL 编码
 				encodedFilename := url.QueryEscape(fileInfo.Name())
