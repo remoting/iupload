@@ -23,3 +23,11 @@ jobs:
     - name: Build
       run: |
         ./build.sh
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        asset_path: ./iupload  # 构建生成的文件路径
+        asset_name: iupload  # 上传到 Release 中的文件名
+        asset_content_type: application/octet-stream
