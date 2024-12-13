@@ -1,6 +1,7 @@
 package main
 
 import (
+	"iupload/fileserver"
 	"log"
 	"net/http"
 	"net/url"
@@ -11,7 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const ATTACH_FOLDER = "attach"
 const STATIC_FOLDER = "static"
 
 // 静态文件中间件
@@ -30,19 +30,22 @@ func staticFileMiddleware() gin.HandlerFunc {
 	}
 }
 func main() {
-	gin.SetMode(gin.ReleaseMode)
+	_serve := &fileserver.FileServer{
+		Root:       STATIC_FOLDER,
+		Browse:     &fileserver.Browse{},
+		IndexNames: []string{"index.html"},
+	}
+	gin.SetMode(gin.DebugMode)
 	// 创建一个默认的 Gin 路由器
 	router := gin.Default()
 
-	// 中间件来处理静态文件请求，排除 /download 路径
-	router.Use(staticFileMiddleware())
 	// 设置下载文件的路由
-	router.GET("/download", func(c *gin.Context) {
+	router.GET("/_download", func(c *gin.Context) {
 		id := c.Query("file")
 		if strings.Contains(id, "..") {
 			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid filename. Please check and try again."})
 		} else {
-			savePath := filepath.Join(".", ATTACH_FOLDER)
+			savePath := filepath.Join(".", STATIC_FOLDER)
 			_, notExistErr := os.Stat(savePath)
 			if os.IsNotExist(notExistErr) {
 				_ = os.MkdirAll(savePath, os.ModePerm)
@@ -61,7 +64,7 @@ func main() {
 		}
 	})
 	// 设置文件上传的路由
-	router.POST("/upload", func(c *gin.Context) {
+	router.POST("/_upload", func(c *gin.Context) {
 		// 从请求中获取文件
 		// 限制最大内存使用数量为 1MB ，不是限制客户端上传的文件大小
 		err := c.Request.ParseMultipartForm(1 << 20)
@@ -76,13 +79,13 @@ func main() {
 			for _, file := range fileHeaders {
 				// 打印文件名称
 				log.Printf("Received %s=%s\n", key, file.Filename)
-				savePath := filepath.Join(".", ATTACH_FOLDER)
+				savePath := filepath.Join(".", STATIC_FOLDER)
 				_, notExistErr := os.Stat(savePath)
 				if os.IsNotExist(notExistErr) {
 					_ = os.MkdirAll(savePath, os.ModePerm)
 				}
 				// 保存文件到指定目录（当前目录）
-				dst := filepath.Join(".", "attach", file.Filename)
+				dst := filepath.Join(".", STATIC_FOLDER, file.Filename)
 				if err := c.SaveUploadedFile(file, dst); err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{
 						"error": err.Error(),
@@ -95,6 +98,18 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "uploaded successfully!",
 		})
+	})
+
+	// 中间件来处理静态文件请求，排除 /download 路径
+	router.NoRoute(func(c *gin.Context) {
+		if c.Request.URL.Path == "/_upload" || c.Request.URL.Path == "/_download" {
+			c.Next()
+		} else {
+			err := _serve.ServeHTTP(c.Writer, c.Request)
+			if err != nil {
+				c.JSON(200, gin.H{"msg": err.Error()})
+			}
+		}
 	})
 
 	// 启动服务器
