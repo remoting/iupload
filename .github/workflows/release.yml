@@ -23,19 +23,17 @@ jobs:
     - name: Build
       run: |
         ./build.sh
-    - name: Get Release by Tag
-      id: get_release
-      uses: actions/github-script@v4
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const tag = core.getInput('tag');
-          const { data: release } = await github.repos.getReleaseByTag({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            tag: tag,
-          });
-          core.setOutput('upload_url', release.upload_url);
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
