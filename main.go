@@ -11,21 +11,38 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const FOLDER = "attach"
+const ATTACH_FOLDER = "attach"
+const STATIC_FOLDER = "static"
 
+// 静态文件中间件
+func staticFileMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 将请求路径映射到静态文件目录
+		requestPath := c.Request.URL.Path
+		fullPath := filepath.Join(STATIC_FOLDER, requestPath)
+		// 检查文件是否存在并返回文件
+		if _, err := filepath.Abs(fullPath); err == nil {
+			http.ServeFile(c.Writer, c.Request, fullPath)
+			c.Abort()
+		} else {
+			c.Next()
+		}
+	}
+}
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 	// 创建一个默认的 Gin 路由器
 	router := gin.Default()
-	router.Any("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{"msg": "ok"})
-	})
+
+	// 中间件来处理静态文件请求，排除 /download 路径
+	router.Use(staticFileMiddleware())
+	// 设置下载文件的路由
 	router.GET("/download", func(c *gin.Context) {
 		id := c.Query("file")
 		if strings.Contains(id, "..") {
 			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid filename. Please check and try again."})
 		} else {
-			savePath := filepath.Join(".", FOLDER)
+			savePath := filepath.Join(".", ATTACH_FOLDER)
 			_, notExistErr := os.Stat(savePath)
 			if os.IsNotExist(notExistErr) {
 				_ = os.MkdirAll(savePath, os.ModePerm)
@@ -59,7 +76,7 @@ func main() {
 			for _, file := range fileHeaders {
 				// 打印文件名称
 				log.Printf("Received %s=%s\n", key, file.Filename)
-				savePath := filepath.Join(".", FOLDER)
+				savePath := filepath.Join(".", ATTACH_FOLDER)
 				_, notExistErr := os.Stat(savePath)
 				if os.IsNotExist(notExistErr) {
 					_ = os.MkdirAll(savePath, os.ModePerm)
