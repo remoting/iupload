@@ -23,6 +23,19 @@ jobs:
     - name: Build
       run: |
         ./build.sh
+    - name: Get Release by Tag
+      id: get_release
+      uses: actions/github-script@v4
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const tag = core.getInput('tag');
+          const { data: release } = await github.repos.getReleaseByTag({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag: tag,
+          });
+          core.setOutput('upload_url', release.upload_url);
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
