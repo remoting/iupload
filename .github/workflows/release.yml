@@ -21,4 +21,4 @@ jobs:
 
     - name: Build
       run: |
-         ./build.sh
+        ./build.sh
