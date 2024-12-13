@@ -11,6 +11,22 @@ on:
 
 jobs:
   release:
+    runs-on: ubuntu-latest
+    environment: BUILD
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+  build:
     runs-on: ${{ matrix.os }}
     environment: BUILD
     strategy:
@@ -38,25 +54,13 @@ jobs:
         go mod tidy
         GOOS=${{ matrix.goos }} GOARCH=${{ matrix.arch }} go build -o output/iupload_${{ matrix.goos }}_${{ matrix.arch }}
 
-    - name: Create Release
-      id: create_release
-      if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'amd64' }}  # 只在一次迭代中创建 Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
-        draft: false
-        prerelease: false
-
     - name: Upload Release Asset
       id: upload-release-asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        upload_url: ${{ needs.create_release.outputs['create_release'].upload_url }}
         asset_path: ./output/iupload_${{ matrix.goos }}_${{ matrix.arch }}  # 构建生成的文件路径
         asset_name: iupload_${{ matrix.goos }}_${{ matrix.arch }}  # 上传到 Release 中的文件名
         asset_content_type: application/octet-stream
