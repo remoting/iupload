@@ -7,6 +7,7 @@ on:
   push:
     tags:
       - 'v*.*.*'   # 例如，匹配 v1.0.0, v1.1.1 等版本标签
+  workflow_dispatch:
 
 jobs:
   release:
