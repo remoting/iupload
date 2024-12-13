@@ -56,7 +56,7 @@ jobs:
       run: |
         mkdir -p output
         go mod tidy
-        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.arch }} go build -o output/iupload_${{ matrix.goos }}_${{ matrix.arch }}
+        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w" -o output/iupload_${{ matrix.goos }}_${{ matrix.arch }}
 
     - name: Build on Windows
       if: runner.os == 'Windows'
@@ -65,7 +65,7 @@ jobs:
         go mod tidy
         $env:GOOS="${{ matrix.goos }}"
         $env:GOARCH="${{ matrix.arch }}"
-        go build -o output/iupload_${{ matrix.goos }}_${{ matrix.arch }}.exe
+        go build -ldflags="-s -w" -o output/iupload_${{ matrix.goos }}_${{ matrix.arch }}.exe
 
     - name: Upload Release Asset
       id: upload-release-asset
