@@ -30,6 +30,7 @@ jobs:
 
   build:
     runs-on: ${{ matrix.os }}
+    needs: release  # 确保 release job 先执行完成
     environment: BUILD
     strategy:
       matrix:
